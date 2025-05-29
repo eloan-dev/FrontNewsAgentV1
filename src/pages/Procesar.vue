@@ -199,6 +199,7 @@ async function handleFileChange(event) {
       alert(
         "⚠️ El nombre del archivo no es válido, deber seguir el formato: ddmmyyyy  ( ejemplo:22042025 ) "
       );
+      resetInput(); // reiniciando el input
       return;
     }
 
@@ -210,13 +211,23 @@ async function handleFileChange(event) {
       });
       fileName.value = res.filename;
       fileSelected.value = true;
-    } catch {
+    } catch(err) {
       // Manejo de error
+      console.error("Error al subir el archivo PDF:", err);
     } finally {
       loading.value = false;
+      resetInput(); // reininiciando el input
     }
   } else {
     alert("Solo se permiten archivos PDF.");
+    resetInput();
+  }
+}
+
+/*function to reset the input*/
+function resetInput() {
+  if (fileInput.value) {
+    fileInput.value.value = null;
   }
 }
 

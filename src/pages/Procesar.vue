@@ -157,10 +157,10 @@
           >
         </div>
       </div>
-      <!-- show error message -->
+      <!-- show error message 
       <div v-if="estado && estado.status === 'error'" class="mt-4 text-red-700">
         {{ estado.message }}
-      </div>
+      </div>-->
 
       <!-- codigo de testeo
       <div v-if="estado && estado.message" class="mt-4 text-blue-700">

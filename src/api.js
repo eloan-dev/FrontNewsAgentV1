@@ -112,19 +112,19 @@ export async function obtenerUrlsExtraidas(filename) {
   return data.urls || [];
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * Consulta el resultado del procesamiento del PDF en formato JSON.
+ * @param {string} filename - El nombre base del archivo (sin extensión).
+ * @returns {Promise<Object>} - El resultado del análisis.
+ */
+export async function obtenerResultadoPdf(filename) {
+  const nombreSinExtension = filename.replace(/\.pdf$/i, "");
+  const response = await fetch(`${API_BASE_URL}/resultado_pdf/${nombreSinExtension}`);
+  if (!response.ok) {
+    throw new Error("No se pudo obtener el resultado del procesamiento del PDF");
+  }
+  return await response.json();
+}
 
 export async function obtenerEstado() {
   const response = await fetch(`${API_BASE_URL}/estado/`);

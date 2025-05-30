@@ -108,7 +108,7 @@
               ></path>
             </svg>
             <span class="text-blue-600 font-semibold"
-              >Procesando, espere por favor...</span
+              >Procesando, estomara varios minutos...</span
             >
           </div>
         </div>

@@ -54,6 +54,7 @@ export function upload_pdf_with_progress(file, onProgress) {
   });
 }
 
+
 /**
  * Uploads a text file to the backend to process.
  * @param {File} file - The text file to upload.
@@ -83,10 +84,21 @@ export async function procesar_pdf({ filename, prompt, batchSize, pauseSeconds }
  * @param {string} filename - El nombre base del archivo (sin extensión).
  * @returns {Promise<Blob>} - El archivo Markdown como Blob.
  */
-export async function descargarMarkdown(filename) {
+export async function descargarMarkdown(filename, intentos = 20, espera = 1500) {
   const response = await fetch(`${API_BASE_URL}/download_md/${filename}`);
   if (!response.ok) throw new Error("No se pudo descargar el archivo Markdown");
   return await response.blob();
+
+  // for (let i = 0; i < intentos; i++) {
+  //   try {
+  //     const response = await fetch(`${API_BASE_URL}/download_md/${filename}`);
+  //     if (response.ok) return true;
+  //   } catch (_) {
+  //     // silencio errores
+  //   }
+  //   await new Promise((r) => setTimeout(r, espera));
+  // }
+  // throw new Error("Markdown no disponible después de múltiples intentos");
 }
 
 /**

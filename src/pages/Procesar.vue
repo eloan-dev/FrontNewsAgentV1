@@ -124,6 +124,7 @@
             >procesado-{{ fileName }}</span
           ><br />
           <button
+            v-if="estado.markdownBlob"
             @click="handleDescargarMarkdown"
             class="inline-flex items-center justify-center bg-green-500 hover:bg-green-600 text-white font-medium py-3 px-6 rounded-md transition duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 mt-4"
             style="margin-left: 10px"
@@ -227,19 +228,34 @@ async function iniciarProcesamiento() {
 
     // Si ya estaba procesado, cargamos directamente las URLs
     if (resultado.status === "ya_procesado") {
+
+      //obteniendo el archivo markdown a descargar
+      const markdownBlob = await descargarMarkdown(nombreBase);
+      estado.value.markdownBlob = markdownBlob;
+      //obteniendo las urls
       const urls = await obtenerUrlsExtraidas(nombreBase);
       estado.value.urls = urls;
+
+
       processed.value = true;
       return;
     }
 
-    // Espera para polling
+    //Espera para polling
     await new Promise((r) => setTimeout(r, 1500));
 
-    // Polling hasta que termine (opcional si no haces polling, puedes quitar esto)
+    console.log("descargando markdown");
+    // guardando el archivo mardown a descargar
+    const markdownBlob = await esperarMarkdownListo(nombreBase);
+    estado.value.markdownBlob = markdownBlob;
+    console.log("obteniendo urls");
+
+    // guardando las urls a descargar
     const urls = await obtenerUrlsExtraidas(nombreBase);
     estado.value.urls = urls;
+
     processed.value = true;
+
   } catch (e) {
     console.error("Error en el procesamiento:", e);
     estado.value = { status: "error", message: "Error al procesar el PDF" };
@@ -249,6 +265,12 @@ async function iniciarProcesamiento() {
 }
 
 async function handleDescargarMarkdown() {
+  
+  if(!estado.value.markdownBlob){
+    alert("No hay archivo Markdown para descargar.");
+    return;
+  };
+  
   const blob = await descargarMarkdown(fileName.value.replace(/\.pdf$/i, ""));
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -335,6 +357,29 @@ function resetProcess() {
   progress.value = 0;
   processing.value = false;
 }
+
+
+async function esperarMarkdownListo(nombreBase, maxRetries = 720, delayMs = 5000) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const blob = await descargarMarkdown(nombreBase);
+      
+      // Comprobamos que el blob no esté vacío
+      if (blob && blob.size > 0) {
+        return blob;
+      }
+
+    } catch (error) {
+      // Ignorar el error, probablemente porque el archivo aún no existe
+    }
+
+    // Esperar antes del próximo intento
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
+
+  throw new Error("Markdown no disponible después de varios intentos");
+}
+
 </script>
 
 <style scoped>

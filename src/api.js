@@ -90,17 +90,6 @@ export async function descargarMarkdown(filename) {
 }
 
 /**
- * Consulta el estado/progreso de la generación del archivo Markdown (.md).
- * @param {string} filename - El nombre base del archivo (sin extensión).
- * @returns {Promise<{progress: number, status: string}>}
- */
-export async function obtenerEstadoMd(filename) {
-  const response = await fetch(`${API_BASE_URL}/estado_md/${filename}`);
-  if (!response.ok) throw new Error("No se pudo obtener el estado del archivo Markdown");
-  return await response.json();
-}
-
-/**
  * Obtiene la lista de URLs extraídas desde el backend.
  * @param {string} filename - El nombre base del archivo (sin extensión).
  * @returns {Promise<string[]>} - Un array de URLs extraídas.
@@ -112,21 +101,18 @@ export async function obtenerUrlsExtraidas(filename) {
   return data.urls || [];
 }
 
-/**
- * Consulta el resultado del procesamiento del PDF en formato JSON.
- * @param {string} filename - El nombre base del archivo (sin extensión).
- * @returns {Promise<Object>} - El resultado del análisis.
- */
-export async function obtenerResultadoPdf(filename) {
-  const nombreSinExtension = filename.replace(/\.pdf$/i, "");
-  const response = await fetch(`${API_BASE_URL}/resultado_pdf/${nombreSinExtension}`);
-  if (!response.ok) {
-    throw new Error("No se pudo obtener el resultado del procesamiento del PDF");
-  }
-  return await response.json();
-}
 
-export async function obtenerEstado() {
-  const response = await fetch(`${API_BASE_URL}/estado/`);
-  return await response.json();
+/**
+ * Consulta el estado del procesamiento del PDF.
+ * @param {string} filename - El nombre base del archivo (sin extensión).
+ * @returns {Promise<Object>} - JSON con el resultado o estado del procesamiento.
+ */
+export async function consultarEstadoProcesamiento(filename) {
+  const nombreSinExtension = filename.replace(/\.pdf$/i, "");
+
+  const response = await fetch(`${API_BASE_URL}/resultado_pdf/${nombreSinExtension}`);
+  const data = await response.json();
+
+  // Puedes manejar el estado 202 en la lógica que use esta función
+  return { status: response.status, data };
 }

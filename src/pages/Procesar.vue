@@ -49,14 +49,18 @@
           </div>
 
           <button
-            v-if="fileSelected && !processing && !processed && !loading"
+            v-if="fileSelected && !processed && !loading"
             class="mt-4 bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-6 rounded-md transition duration-300"
             @click="iniciarProcesamiento"
+            :disabled="processing"
           >
             Procesar
           </button>
-          <div id="spinner" style="display: none">
-            <!-- Puedes usar un simple SVG o cualquier otro contenido -->
+
+          <div
+            v-if="processing"
+            class="flex items-center justify-center gap-2 mt-4"
+          >
             <svg
               class="animate-spin h-8 w-8 text-blue-600"
               xmlns="http://www.w3.org/2000/svg"
@@ -77,26 +81,15 @@
                 d="M4 12a8 8 0 018-8v8H4z"
               ></path>
             </svg>
-            <span>Procesando, espere por favor...</span>
+            <span class="text-blue-600 font-semibold"
+              >Procesando, espere por favor...</span
+            >
           </div>
-         
         </div>
         <p class="text-gray-500 mt-4 text-sm md:text-base text-center">
           Formatos soportados : PDF
         </p>
       </div>
-
-      <!-- <div v-if="processed && mdStatus !== 'done'" class="w-full mt-6">
-        <div class="w-full bg-gray-200 rounded-full h-4">
-          <div
-            class="bg-green-500 h-4 rounded-full transition-all duration-300"
-            :style="{ width: mdProgress + '%' }"
-          ></div>
-        </div>
-        <p class="text-green-500 mt-2">Procesando... {{ mdProgress }}%</p>
-      </div> -->
-
-
 
       <div v-if="processed" class="bg-white rounded-lg shadow-sm p-6">
         <div class="text-center">
@@ -129,7 +122,6 @@
             Procesar otro PDF
           </button>
         </div>
-        <!-- ----------- -->
       </div>
 
       <!-- show urls extracted -->
@@ -157,21 +149,6 @@
           >
         </div>
       </div>
-      <!-- show error message 
-      <div v-if="estado && estado.status === 'error'" class="mt-4 text-red-700">
-        {{ estado.message }}
-      </div>-->
-
-      <!-- codigo de testeo
-      <div v-if="estado && estado.message" class="mt-4 text-blue-700">
-        {{ estado.message }} <br />
-        <button
-          @click="consultarEstado"
-          class="ml-4 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition duration-300"
-        >
-          Consultar Estado
-        </button>
-      </div> -->
     </div>
   </div>
 </template>
@@ -183,10 +160,9 @@ import {
   descargarMarkdown,
   obtenerUrlsExtraidas,
   upload_pdf_with_progress,
-  obtenerResultadoPdf,
-} from "../api"; // importing modules from API.js
+  consultarEstadoProcesamiento,
+} from "../api"; 
 
-//reactives variables
 const prompt = ref("simple");
 const batchSize = ref(3);
 const pauseSeconds = ref(30);
@@ -198,63 +174,19 @@ const loading = ref(false);
 const processing = ref(false);
 const processed = ref(false);
 const progress = ref(0);
-const mdProgress = ref(0);
-const mdStatus = ref("processing");
-let ws = null;
 
-/**
- * File upload event
- * @param {Event} event - The file input change event
- * @returns {Promise<void>}
- */
-async function handleFileChange(event) {
-  const file = event.target.files[0];
-  if (file && file.type === "application/pdf") {
-    // validate name of file
-    if (nameFileValidate(file.name) === false) {
-      alert(
-        "⚠️ El nombre del archivo no es válido, deber seguir el formato: ddmmyyyy  ( ejemplo:22042025 ) "
-      );
-      resetInput(); // reiniciando el input
-      return;
-    }
-
-    loading.value = true;
-    progress.value = 0;
-    try {
-      const res = await upload_pdf_with_progress(file, (percent) => {
-        progress.value = percent;
-      });
-      fileName.value = res.filename;
-      fileSelected.value = true;
-    } catch(err) {
-      // Manejo de error
-      console.error("Error al subir el archivo PDF:", err);
-    } finally {
-      loading.value = false;
-      resetInput(); // reininiciando el input
-    }
-  } else {
-    alert("Solo se permiten archivos PDF.");
-    resetInput();
-  }
-}
-
-/*function to reset the input*/
+/* función para resetear input */
 function resetInput() {
   if (fileInput.value) {
     fileInput.value.value = null;
   }
 }
 
-/**
- * Function to process the PDF
- * @param {Object} params - Parameters for processing
- * @returns {Promise<void>}
- */
 async function iniciarProcesamiento() {
+  if (processing.value) return;
   processing.value = true;
-  iniciarConsultaResultado(fileName.value); //iniciar spinner
+  processed.value = false;
+
   try {
     const resultado = await procesar_pdf({
       filename: fileName.value,
@@ -262,23 +194,35 @@ async function iniciarProcesamiento() {
       batchSize: batchSize.value,
       pauseSeconds: pauseSeconds.value,
     });
+
     estado.value = resultado;
-    // Obtenr las URLs extraídas despues de procesar el PDF
-    const urls = await obtenerUrlsExtraidas(
-      fileName.value.replace(/\.pdf$/i, "")
-    );
+
+    let nombreBase = fileName.value.replace(/\.pdf$/i, "");
+
+    // Si ya estaba procesado, cargamos directamente las URLs
+    if (resultado.status === "ya_procesado") {
+      const urls = await obtenerUrlsExtraidas(nombreBase);
+      estado.value.urls = urls;
+      processed.value = true;
+      return;
+    }
+
+    // Espera para polling
+    await new Promise((r) => setTimeout(r, 1500));
+
+    // Polling hasta que termine (opcional si no haces polling, puedes quitar esto)
+    const urls = await obtenerUrlsExtraidas(nombreBase);
     estado.value.urls = urls;
     processed.value = true;
-  } catch {
+  } catch (e) {
+    console.error("Error en el procesamiento:", e);
     estado.value = { status: "error", message: "Error al procesar el PDF" };
+  } finally {
+    processing.value = false;
   }
-  processing.value = false;
 }
 
-/**
- * Function to download the processed markdown file
- * @returns {Promise<void>}
- */
+
 async function handleDescargarMarkdown() {
   const blob = await descargarMarkdown(fileName.value.replace(/\.pdf$/i, ""));
   const url = URL.createObjectURL(blob);
@@ -291,18 +235,42 @@ async function handleDescargarMarkdown() {
   URL.revokeObjectURL(url);
 }
 
-/**
- * Function to get upload file using drag and drop
- * @param {DragEvent} event - The drag event
- * @returns {Promise<void>}
- */
+async function handleFileChange(event) {
+  const file = event.target.files[0];
+  if (file && file.type === "application/pdf") {
+    if (!nameFileValidate(file.name)) {
+      alert(
+        "⚠️ El nombre del archivo no es válido, debe seguir el formato: ddmmyyyy (ejemplo: 22042025)"
+      );
+      resetInput();
+      return;
+    }
+    loading.value = true;
+    progress.value = 0;
+    try {
+      const res = await upload_pdf_with_progress(file, (percent) => {
+        progress.value = percent;
+      });
+      fileName.value = res.filename;
+      fileSelected.value = true;
+    } catch (err) {
+      console.error("Error al subir el archivo PDF:", err);
+    } finally {
+      loading.value = false;
+      resetInput();
+    }
+  } else {
+    alert("Solo se permiten archivos PDF.");
+    resetInput();
+  }
+}
+
 async function handleDrop(event) {
   const file = event.dataTransfer.files[0];
   if (file && file.type === "application/pdf") {
-    // validate name of file
-    if (nameFileValidate(file.name) === false) {
+    if (!nameFileValidate(file.name)) {
       alert(
-        "⚠️ El nombre del archivo no es válido, deber seguir el formato: ddmmyyyy  ( ejemplo:22042025 ) "
+        "⚠️ El nombre del archivo no es válido, debe seguir el formato: ddmmyyyy (ejemplo: 22042025)"
       );
       return;
     }
@@ -315,9 +283,7 @@ async function handleDrop(event) {
       fileName.value = res.filename;
       fileSelected.value = true;
     } catch (err) {
-      alert("Error al subir el archivo PDF. Intenta nuevamente.");
-      fileName.value = "";
-      fileSelected.value = false;
+      console.error("Error al subir el archivo PDF:", err);
     } finally {
       loading.value = false;
     }
@@ -326,96 +292,29 @@ async function handleDrop(event) {
   }
 }
 
-/**
- * Function to get the status of the process
- * @returns {Promise<void>}
- */
-async function consultarEstado() {
-  estado.value = await obtenerEstado();
+function nameFileValidate(name) {
+  return /^\d{8}\.pdf$/i.test(name);
 }
 
-/**
- * Function to select the file
- */
 function selectFile() {
-  if (!fileSelected.value) fileInput.value.click();
+  if (fileInput.value) {
+    fileInput.value.click();
+  }
 }
 
-/**
- * Function to reset the process
- */
 function resetProcess() {
   fileName.value = "";
   fileSelected.value = false;
-  loading.value = false;
-  processing.value = false;
   processed.value = false;
+  estado.value = "";
   progress.value = 0;
-  downloadUrl.value = "";
+  processing.value = false;
 }
-
-/**
- * Function to validate the file name
- * @param {string} name - The file name
- * @returns {boolean} - True if valid, false otherwise
- */
-function nameFileValidate(name) {
-  const match = name.match(/^(\d{2})(\d{2})(\d{4})\.pdf$/i);
-  if (!match) {
-    return false;
-  }
-  return true;
-}
-
-/*
- * Function to get the result of the PDF
- * @param {string} filename - The name of the file
- * @param {number} delayMs - The delay in milliseconds
- * @param {number} maxIntentos - The maximum number of attempts
- * @returns {Promise<string>} - The result of the PDF
- */
-async function esperarResultadoPdf(filename, delayMs = 15000, maxIntentos = 48) {
-  showSpinner(); // comenzar a mostrar el spinner
-  let intentos = 0;
-  try {
-    while (intentos < maxIntentos) {
-      try {
-        const resultado = await obtenerResultadoPdf(filename);
-        return resultado; // Resultado obtenido, se sale del bucle
-      } catch (err) {
-        console.log("Esperando resultado...", err.message);
-        await new Promise(resolve => setTimeout(resolve, delayMs));
-        intentos++;
-      }
-    }
-    throw new Error("Tiempo de espera agotado para obtener el resultado del PDF");
-  } finally {
-    hideSpinner(); // Asegura que el spinner se oculte en cualquier caso
-  }
-}
-
-function showSpinner() {
-  const spinner = document.getElementById("spinner");
-  if (spinner) {
-    spinner.style.display = "flex"; // O 'block', según tu diseño
-  }
-}
-
-function hideSpinner() {
-  const spinner = document.getElementById("spinner");
-  if (spinner) {
-    spinner.style.display = "none";
-  }
-}
-
-async function iniciarConsultaResultado(fileName) {
-  try {
-    const resultado = await esperarResultadoPdf(fileName.value); // reemplaza "ejemplo" por el nombre base del PDF
-    console.log("Resultado obtenido:", resultado);
-    // Aquí puedes actualizar el DOM o notificar al usuario con el resultado
-  } catch (error) {
-    console.error("Error:", error.message);
-  }
-}
-
 </script>
+
+<style scoped>
+/* Para evitar seleccionar texto accidentalmente en la zona de drop */
+.container-process .border-dashed {
+  user-select: none;
+}
+</style>

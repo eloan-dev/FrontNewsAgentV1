@@ -15,7 +15,7 @@
           @drop.prevent="handleDrop"
           @dragover.prevent
         >
-          <p class="text-gray-500 mb-4">Arrastre archivos aquí o ...</p>
+          <p v-if="!fileSelected && !processing" class="text-gray-500 mb-4">Arrastre archivos aquí o ...</p>
 
           <input
             ref="fileInput"
@@ -27,9 +27,10 @@
           />
 
           <button
+            v-if="!fileSelected && !processing"
             class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-6 rounded-md transition duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
             @click="selectFile"
-            :disabled="fileSelected || processing"
+            
           >
             Seleccionar archivos
           </button>
@@ -116,7 +117,7 @@
         <!-- Procesar un nuevo documento -->
         <div class="mt-6 border-t-1 border-gray-200 pt-2">
           <button
-            class="bg-white hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded transition duration-200"
+            class="bg-gradient-to-r from-blue-400 to-blue-600 text-white font-semibold py-2 px-6 rounded-xl shadow-lg hover:from-blue-500 hover:to-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 focus:ring-opacity-50 transition-transform transform hover:scale-105 active:scale-95"
             @click="resetProcess"
           >
             Procesar otro PDF

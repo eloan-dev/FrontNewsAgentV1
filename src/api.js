@@ -7,7 +7,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000
  * @returns {Promise<Response>} - The response from the server.
  */
 export async function upload_pdf(file) {
-  const formData = new FormData();
+  const formData = new FormData();ytgh
   formData.append("file", file);
 
   const response = await fetch(`${API_BASE_URL}/upload_pdf/`, {

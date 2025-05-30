@@ -15,7 +15,9 @@
           @drop.prevent="handleDrop"
           @dragover.prevent
         >
-          <p v-if="!fileSelected && !processing" class="text-gray-500 mb-4">Arrastre archivos aquí o ...</p>
+          <p v-if="!fileSelected && !processing" class="text-gray-500 mb-4">
+            Arrastre archivos aquí o ...
+          </p>
 
           <input
             ref="fileInput"
@@ -28,10 +30,23 @@
 
           <button
             v-if="!fileSelected && !processing"
-            class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-6 rounded-md transition duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+            class="bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:from-blue-600 hover:to-indigo-600 focus:outline-none focus:ring-4 focus:ring-blue-300 focus:ring-opacity-60 transition transform hover:scale-105 active:scale-95 flex items-center gap-2"
             @click="selectFile"
-            
           >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
             Seleccionar archivos
           </button>
 
@@ -51,10 +66,20 @@
 
           <button
             v-if="fileSelected && !processed && !loading"
-            class="mt-4 bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-6 rounded-md transition duration-300"
+            class="mt-4 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-4 focus:ring-green-300 focus:ring-opacity-60 flex items-center gap-2"
             @click="iniciarProcesamiento"
             :disabled="processing"
           >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path
+                d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.08-.29 2.1-.8 2.98l1.46 1.46A7.938 7.938 0 0020 12c0-4.42-3.58-8-8-8zm-6.66.8L3.88 6.26A7.938 7.938 0 004 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3c-3.31 0-6-2.69-6-6 0-1.08.29-2.1.8-2.98L5.34 4.8z"
+              />
+            </svg>
             Procesar
           </button>
 
@@ -162,7 +187,7 @@ import {
   obtenerUrlsExtraidas,
   upload_pdf_with_progress,
   consultarEstadoProcesamiento,
-} from "../api"; 
+} from "../api";
 
 const prompt = ref("simple");
 const batchSize = ref(3);
@@ -222,7 +247,6 @@ async function iniciarProcesamiento() {
     processing.value = false;
   }
 }
-
 
 async function handleDescargarMarkdown() {
   const blob = await descargarMarkdown(fileName.value.replace(/\.pdf$/i, ""));
